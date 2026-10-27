@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { EditorContext } from './editorContextInstance';
 import { FILTERS_DATA, INITIAL_ADJUSTMENTS, createBlankCanvasDataUrl } from '../utils/projectPresets';
 import { loadRecentProjects, saveRecentProject, clearAllRecentProjects } from '../utils/storage';
