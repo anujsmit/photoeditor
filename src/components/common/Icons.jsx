@@ -3,29 +3,19 @@ import React from 'react';
 export function LogoIcon({ size = 32, className = '' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <defs>
-        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#c084fc" />
-          <stop offset="50%" stopColor="#9333ea" />
-          <stop offset="100%" stopColor="#6366f1" />
-        </linearGradient>
-        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#9333ea" floodOpacity="0.5" />
-        </filter>
-      </defs>
-      <rect width="48" height="48" rx="14" fill="url(#logoGrad)" filter="url(#glow)" />
-      {/* Stylized 'Bi' / 'BP' calligraphy mark */}
+      <rect width="48" height="48" rx="8" fill="#ffffff" />
+      {/* Stylized 'B' mark in pure black */}
       <path
         d="M17 14C17 14 20 12 24 12C28.5 12 32 15.5 32 19.5C32 23.5 28 25.5 25 26C30 27 33 30.5 33 34.5C33 39 29 42 23.5 42C18 42 16 38.5 16 38.5"
-        stroke="#ffffff"
+        stroke="#000000"
         strokeWidth="3.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="21" cy="24" r="2.5" fill="#ffffff" />
+      <circle cx="21" cy="24" r="2.5" fill="#000000" />
       <path
         d="M26 18C28 18 29.5 19 29.5 20.5C29.5 22 28 23 26 23"
-        stroke="#ffffff"
+        stroke="#000000"
         strokeWidth="3"
         strokeLinecap="round"
       />
@@ -475,6 +465,79 @@ export function Icon({ name, size = 18, color = "currentColor", strokeWidth = 2,
         <svg {...props}>
           <path d="M21 7v6h-6" />
           <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+        </svg>
+      );
+    case "grip":
+    case "drag":
+    case "reorder":
+      return (
+        <svg {...props}>
+          <circle cx="9" cy="6" r="1.5" fill={color} />
+          <circle cx="15" cy="6" r="1.5" fill={color} />
+          <circle cx="9" cy="12" r="1.5" fill={color} />
+          <circle cx="15" cy="12" r="1.5" fill={color} />
+          <circle cx="9" cy="18" r="1.5" fill={color} />
+          <circle cx="15" cy="18" r="1.5" fill={color} />
+        </svg>
+      );
+    case "lasso":
+      return (
+        <svg {...props}>
+          <path d="M7 22a5 5 0 0 1-2-4c0-4 4.5-9 9-9 3.5 0 6 2 6 5s-2.5 5-6 5c-2 0-3.5-.5-4.5-1.5" />
+          <path d="M5 19l4 3" />
+        </svg>
+      );
+    case "eyedropper":
+    case "picker":
+    case "pipette":
+      return (
+        <svg {...props}>
+          <path d="M14 4l6 6-2 2-2-2-7 7H5v-4l7-7-2-2 2-2 4 4z" />
+          <path d="M5 19l-3 3" />
+        </svg>
+      );
+    case "stamp":
+    case "clone":
+      return (
+        <svg {...props}>
+          <path d="M5 22h14" />
+          <path d="M19 18H5a2 2 0 0 1-2-2v-2c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2z" />
+          <path d="M12 12V3a1 1 0 0 1 1-1h2a2 2 0 0 1 2 2v8" />
+        </svg>
+      );
+    case "blur":
+      return (
+        <svg {...props}>
+          <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+        </svg>
+      );
+    case "dodge":
+    case "burn":
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 3v18" />
+          <path d="M12 3a9 9 0 0 1 0 18z" fill={color} />
+        </svg>
+      );
+    case "layout":
+      return (
+        <svg {...props}>
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18" />
+          <path d="M9 21V9" />
+        </svg>
+      );
+    case "triangle":
+      return (
+        <svg {...props}>
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        </svg>
+      );
+    case "star":
+      return (
+        <svg {...props}>
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       );
     default:

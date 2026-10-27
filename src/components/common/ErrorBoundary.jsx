@@ -27,7 +27,7 @@ export class ErrorBoundary extends React.Component {
         <div style={{
           height: '100vh',
           width: '100vw',
-          backgroundColor: '#0e0c16',
+          backgroundColor: '#000000',
           color: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
@@ -36,16 +36,16 @@ export class ErrorBoundary extends React.Component {
           padding: '24px',
           textAlign: 'center'
         }}>
-          <h2 style={{ fontSize: '22px', marginBottom: '10px', color: '#c084fc', fontWeight: 700 }}>
+          <h2 style={{ fontSize: '22px', marginBottom: '10px', color: '#ffffff', fontWeight: 700 }}>
             BARD Photo Editor
           </h2>
-          <p style={{ color: '#9ca3af', marginBottom: '14px', maxWidth: '500px', fontSize: '13px', lineHeight: 1.5 }}>
+          <p style={{ color: '#a3a3a3', marginBottom: '14px', maxWidth: '500px', fontSize: '13px', lineHeight: 1.5 }}>
             The editor encountered a temporary rendering issue. Click below to safely restore your workspace.
           </p>
           {this.state.error && (
             <pre style={{
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              background: '#1a1a1a',
+              border: '1px solid #333333',
               color: '#f87171',
               padding: '10px 14px',
               borderRadius: '8px',
@@ -66,10 +66,10 @@ export class ErrorBoundary extends React.Component {
             type="button"
             onClick={() => window.location.reload()}
             style={{
-              background: 'linear-gradient(135deg, #7c3aed, #9333ea)',
-              color: '#ffffff',
+              background: '#ffffff',
+              color: '#000000',
               padding: '10px 24px',
-              borderRadius: '9999px',
+              borderRadius: '6px',
               fontSize: '13px',
               fontWeight: 600,
               cursor: 'pointer',

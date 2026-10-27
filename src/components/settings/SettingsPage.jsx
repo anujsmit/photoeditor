@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SidebarNav from '../home/SidebarNav';
 import { Icon, LogoIcon } from '../common/Icons';
 import WindowControls from '../common/WindowControls';
 import { useEditor } from '../../context/useEditor';
+import { formatShortcutDisplay } from '../../utils/shortcuts';
 
 export default function SettingsPage() {
-  const { autoSaveEnabled, setAutoSaveEnabled } = useEditor();
+  const {
+    autoSaveEnabled,
+    setAutoSaveEnabled,
+    shortcuts,
+    updateShortcut,
+    resetShortcuts
+  } = useEditor();
   const [activeTab, setActiveTab] = useState('General');
   const [defaultFormat, setDefaultFormat] = useState('PNG');
   const [defaultQuality, setDefaultQuality] = useState(90);
@@ -14,6 +21,42 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState('English');
   const [gpuAcceleration, setGpuAcceleration] = useState(true);
   const [savedNotification, setSavedNotification] = useState(false);
+  const [recordingId, setRecordingId] = useState(null);
+  const [shortcutFilter, setShortcutFilter] = useState('');
+
+  // Key recording listener for custom shortcuts
+  useEffect(() => {
+    if (!recordingId) return;
+
+    const handleKeyDown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.key === 'Escape') {
+        setRecordingId(null);
+        return;
+      }
+
+      if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) {
+        return;
+      }
+
+      const updated = {
+        key: e.key.toLowerCase(),
+        ctrl: !!(e.ctrlKey || e.metaKey),
+        shift: !!e.shiftKey,
+        alt: !!e.altKey
+      };
+
+      updateShortcut(recordingId, updated);
+      setRecordingId(null);
+      setSavedNotification(true);
+      setTimeout(() => setSavedNotification(false), 2000);
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [recordingId, updateShortcut]);
 
   const tabs = ['General', 'Appearance', 'Performance', 'Shortcuts', 'File Types'];
 
@@ -45,7 +88,7 @@ export default function SettingsPage() {
             <Icon name="bell" size={18} />
           </button>
           <div className="user-avatar-pill" title="User Profile">
-            <Icon name="user" size={18} color="#c084fc" />
+            <Icon name="user" size={18} color="#ffffff" />
           </div>
           <WindowControls />
         </div>
@@ -244,15 +287,133 @@ export default function SettingsPage() {
 
             {activeTab === 'Shortcuts' && (
               <div className="settings-card-panel">
-                <div className="shortcuts-list-grid">
-                  <div className="shortcut-row"><span>Move Tool</span><kbd>V</kbd></div>
-                  <div className="shortcut-row"><span>Crop Tool</span><kbd>C</kbd></div>
-                  <div className="shortcut-row"><span>Text Tool</span><kbd>T</kbd></div>
-                  <div className="shortcut-row"><span>Brush Tool</span><kbd>B</kbd></div>
-                  <div className="shortcut-row"><span>Eraser Tool</span><kbd>E</kbd></div>
-                  <div className="shortcut-row"><span>Zoom In / Out</span><kbd>Ctrl + / -</kbd></div>
-                  <div className="shortcut-row"><span>Fit to Screen</span><kbd>Ctrl + 0</kbd></div>
-                  <div className="shortcut-row"><span>Export Image</span><kbd>Ctrl + E</kbd></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '15px', color: '#ffffff' }}>Custom Keyboard Shortcuts</h3>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#9ca3af' }}>
+                      Click on any shortcut key or "Change" to record a new key combination according to your preference.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="settings-action-btn"
+                      style={{ fontSize: '11px', color: '#f87171' }}
+                      onClick={() => {
+                        if (window.confirm('Reset all shortcuts to factory defaults?')) {
+                          resetShortcuts();
+                          setSavedNotification(true);
+                          setTimeout(() => setSavedNotification(false), 2000);
+                        }
+                      }}
+                    >
+                      Reset Defaults
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <input
+                    type="text"
+                    placeholder="Search shortcuts (e.g. delete text, save, move)..."
+                    value={shortcutFilter}
+                    onChange={(e) => setShortcutFilter(e.target.value)}
+                    className="settings-input"
+                    style={{ width: '100%', fontSize: '12px' }}
+                  />
+                </div>
+
+                {recordingId && (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      background: '#1a1a1a',
+                      border: '1px solid #ffffff',
+                      borderRadius: '6px',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', color: '#ffffff', fontWeight: 600 }}>
+                      Listening: Press key combination for "{shortcuts?.[recordingId]?.name || 'Shortcut'}" (e.g. Ctrl + T)...
+                    </span>
+                    <button
+                      type="button"
+                      className="dialog-cancel-btn"
+                      style={{ padding: '3px 8px', fontSize: '10px' }}
+                      onClick={() => setRecordingId(null)}
+                    >
+                      Cancel (Esc)
+                    </button>
+                  </div>
+                )}
+
+                <div className="shortcuts-list-grid" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {Object.values(shortcuts || {})
+                    .filter(s => {
+                      if (!shortcutFilter) return true;
+                      const q = shortcutFilter.toLowerCase();
+                      return s.name.toLowerCase().includes(q) || (s.display && s.display.toLowerCase().includes(q));
+                    })
+                    .map((item) => {
+                      const isRec = recordingId === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          className="shortcut-row"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            background: isRec ? '#222222' : 'rgba(255, 255, 255, 0.03)',
+                            borderRadius: '6px',
+                            border: isRec ? '1px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.05)'
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#ffffff', display: 'block' }}>
+                              {item.name}
+                            </span>
+                            <span style={{ fontSize: '10px', color: '#9ca3af' }}>
+                              {item.description}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <kbd
+                              onClick={() => setRecordingId(item.id)}
+                              style={{
+                                cursor: 'pointer',
+                                padding: '4px 10px',
+                                background: isRec ? '#ffffff' : 'rgba(0,0,0,0.5)',
+                                border: isRec ? '1px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.2)',
+                                borderRadius: '4px',
+                                color: isRec ? '#000000' : '#ffffff',
+                                fontFamily: 'monospace',
+                                fontSize: '11px',
+                                minWidth: '70px',
+                                textAlign: 'center'
+                              }}
+                              title="Click to record new key combination"
+                            >
+                              {isRec ? 'Press keys...' : (item.display || formatShortcutDisplay(item))}
+                            </kbd>
+
+                            <button
+                              type="button"
+                              className="settings-action-btn"
+                              style={{ padding: '3px 8px', fontSize: '10px' }}
+                              onClick={() => setRecordingId(isRec ? null : item.id)}
+                            >
+                              {isRec ? 'Cancel' : 'Change'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             )}

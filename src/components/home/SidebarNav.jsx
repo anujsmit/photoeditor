@@ -7,7 +7,9 @@ export default function SidebarNav() {
     currentView,
     setCurrentView,
     setNewProjectModalOpen,
-    triggerOpenFileDialog
+    triggerOpenFileDialog,
+    triggerAIToolUpload,
+    aiPhoto
   } = useEditor();
 
   const handleNavClick = (viewName) => {
@@ -15,6 +17,18 @@ export default function SidebarNav() {
       setNewProjectModalOpen(true);
     } else if (viewName === 'open') {
       triggerOpenFileDialog();
+    } else if (viewName === 'ai-enhance' || viewName === 'ai-tools') {
+      if (aiPhoto) {
+        setCurrentView('ai-enhance');
+      } else {
+        triggerAIToolUpload('ai-enhance');
+      }
+    } else if (viewName === 'remove-bg') {
+      if (aiPhoto) {
+        setCurrentView('remove-bg');
+      } else {
+        triggerAIToolUpload('remove-bg');
+      }
     } else {
       setCurrentView(viewName);
     }
@@ -51,12 +65,21 @@ export default function SidebarNav() {
         </button>
 
         <button
-          className={`sidebar-nav-item ${currentView === 'ai-tools' ? 'active' : ''}`}
-          onClick={() => handleNavClick('ai-tools')}
-          title="AI Tools"
+          className={`sidebar-nav-item ${currentView === 'ai-enhance' || currentView === 'ai-tools' ? 'active' : ''}`}
+          onClick={() => handleNavClick('ai-enhance')}
+          title="AI Enhance"
         >
           <Icon name="sparkles" size={20} />
-          <span>AI Tools</span>
+          <span>AI Enhance</span>
+        </button>
+
+        <button
+          className={`sidebar-nav-item ${currentView === 'remove-bg' ? 'active' : ''}`}
+          onClick={() => handleNavClick('remove-bg')}
+          title="Remove Background"
+        >
+          <Icon name="scissors" size={20} />
+          <span>Remove BG</span>
         </button>
 
         <button

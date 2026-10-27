@@ -43,6 +43,30 @@ export function getCombinedFilterStyle(adjustments, activeFilterCss = "none") {
 /**
  * Render the multi-layer composite to a hidden canvas and trigger download
  */
+// Helper to draw a 5-point star on export canvas
+function drawStar(ctx, cx, cy, spikes = 5, outerRadius = 50, innerRadius = 25) {
+  let rot = (Math.PI / 2) * 3;
+  let x = cx;
+  let y = cy;
+  const step = Math.PI / spikes;
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerRadius);
+  for (let i = 0; i < spikes; i++) {
+    x = cx + Math.cos(rot) * outerRadius;
+    y = cy + Math.sin(rot) * outerRadius;
+    ctx.lineTo(x, y);
+    rot += step;
+
+    x = cx + Math.cos(rot) * innerRadius;
+    y = cy + Math.sin(rot) * innerRadius;
+    ctx.lineTo(x, y);
+    rot += step;
+  }
+  ctx.lineTo(cx, cy - outerRadius);
+  ctx.closePath();
+}
+
 export async function exportCanvasImage({
   imageSrc,
   layers = [],
@@ -102,6 +126,9 @@ export async function exportCanvasImage({
               if (img) {
                 ctx.save();
                 ctx.globalAlpha = (layer.opacity ?? 100) / 100;
+                if (layer.blendMode && layer.blendMode !== 'Normal') {
+                  ctx.globalCompositeOperation = layer.blendMode.toLowerCase();
+                }
                 if (filterStyle && filterStyle !== 'none') {
                   ctx.filter = filterStyle;
                 }
@@ -113,6 +140,67 @@ export async function exportCanvasImage({
                 ctx.drawImage(img, lx, ly, lw, lh);
                 ctx.restore();
               }
+            } else if (layer.type === 'shape') {
+              ctx.save();
+              ctx.globalAlpha = (layer.opacity ?? 100) / 100;
+              const lx = (layer.x ?? 0) * scaleX;
+              const ly = (layer.y ?? 0) * scaleY;
+              const lw = (layer.width ?? 400) * scaleX;
+              const lh = (layer.height ?? 260) * scaleY;
+              const sType = layer.shapeType || 'rectangle';
+
+              if (layer.shadow) {
+                ctx.shadowColor = layer.shadowColor || '#8b5cf6';
+                ctx.shadowBlur = (layer.shadowBlur || 15) * scaleX;
+              }
+
+              ctx.fillStyle = layer.fill || 'transparent';
+              ctx.strokeStyle = layer.stroke || 'transparent';
+              ctx.lineWidth = (layer.strokeWidth || 0) * scaleX;
+
+              if (layer.strokeStyle === 'dashed') {
+                ctx.setLineDash([8 * scaleX, 4 * scaleX]);
+              } else if (layer.strokeStyle === 'dotted') {
+                ctx.setLineDash([3 * scaleX, 3 * scaleX]);
+              } else {
+                ctx.setLineDash([]);
+              }
+
+              if (sType === 'circle') {
+                ctx.beginPath();
+                ctx.ellipse(lx + lw / 2, ly + lh / 2, Math.abs(lw / 2), Math.abs(lh / 2), 0, 0, Math.PI * 2);
+                if (layer.fill && layer.fill !== 'transparent') ctx.fill();
+                if ((layer.strokeWidth || 0) > 0 && layer.stroke && layer.stroke !== 'transparent') ctx.stroke();
+              } else if (sType === 'triangle') {
+                ctx.beginPath();
+                ctx.moveTo(lx + lw / 2, ly);
+                ctx.lineTo(lx + lw, ly + lh);
+                ctx.lineTo(lx, ly + lh);
+                ctx.closePath();
+                if (layer.fill && layer.fill !== 'transparent') ctx.fill();
+                if ((layer.strokeWidth || 0) > 0 && layer.stroke && layer.stroke !== 'transparent') ctx.stroke();
+              } else if (sType === 'star') {
+                drawStar(ctx, lx + lw / 2, ly + lh / 2, 5, lw / 2, lw / 4);
+                if (layer.fill && layer.fill !== 'transparent') ctx.fill();
+                if ((layer.strokeWidth || 0) > 0 && layer.stroke && layer.stroke !== 'transparent') ctx.stroke();
+              } else if (sType === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(lx, ly + lh / 2);
+                ctx.lineTo(lx + lw, ly + lh / 2);
+                if ((layer.strokeWidth || 0) > 0) ctx.stroke();
+              } else {
+                const radius = Math.min((layer.cornerRadius ?? (sType === 'rounded-rect' ? 24 : 0)) * scaleX, lw / 2, lh / 2);
+                if (radius > 0 && typeof ctx.roundRect === 'function') {
+                  ctx.beginPath();
+                  ctx.roundRect(lx, ly, lw, lh, radius);
+                  if (layer.fill && layer.fill !== 'transparent') ctx.fill();
+                  if ((layer.strokeWidth || 0) > 0 && layer.stroke && layer.stroke !== 'transparent') ctx.stroke();
+                } else {
+                  if (layer.fill && layer.fill !== 'transparent') ctx.fillRect(lx, ly, lw, lh);
+                  if ((layer.strokeWidth || 0) > 0 && layer.stroke && layer.stroke !== 'transparent') ctx.strokeRect(lx, ly, lw, lh);
+                }
+              }
+              ctx.restore();
             } else if (layer.type === 'text' && layer.text) {
               ctx.save();
               ctx.globalAlpha = (layer.opacity ?? 100) / 100;

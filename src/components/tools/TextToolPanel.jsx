@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Icon } from '../common/Icons';
 import { useEditor } from '../../context/useEditor';
+import {
+  TOP_GOOGLE_FONTS,
+  DESKTOP_SYSTEM_FONTS,
+  ensureGoogleFont,
+  queryDesktopFonts
+} from '../../utils/fonts';
 
 export default function TextToolPanel() {
   const {
@@ -13,11 +19,43 @@ export default function TextToolPanel() {
     addTextLayer
   } = useEditor();
   const [activeTab, setActiveTab] = useState('Text');
+  const [fontSearch, setFontSearch] = useState('');
+  const [desktopFonts, setDesktopFonts] = useState(DESKTOP_SYSTEM_FONTS);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState(null);
 
   const textLayersList = layers.filter(l => l.type === 'text');
-
-  const fonts = ['Poppins', 'Inter', 'Montserrat', 'Roboto', 'Playfair Display', 'Pacifico'];
   const weights = ['Bold', 'Semi-Bold', 'Regular', 'Light'];
+
+  // Scan local system fonts using window.queryLocalFonts
+  const handleScanFonts = async () => {
+    setIsScanning(true);
+    try {
+      const list = await queryDesktopFonts();
+      setDesktopFonts(list);
+      setScanMessage(`Loaded ${list.length} desktop fonts`);
+      setTimeout(() => setScanMessage(null), 3000);
+    } catch {
+      setScanMessage('Desktop fonts loaded');
+      setTimeout(() => setScanMessage(null), 3000);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleFontSelect = (fontName) => {
+    ensureGoogleFont(fontName);
+    setTextLayer(t => ({ ...t, font: fontName }));
+  };
+
+  // Filter Google and Desktop fonts
+  const filteredGoogleFonts = TOP_GOOGLE_FONTS.filter(f =>
+    !fontSearch || f.name.toLowerCase().includes(fontSearch.toLowerCase())
+  );
+
+  const filteredDesktopFonts = desktopFonts.filter(f =>
+    !fontSearch || f.name.toLowerCase().includes(fontSearch.toLowerCase())
+  );
 
   return (
     <div className="tool-dialog-panel text-panel">
@@ -102,17 +140,62 @@ export default function TextToolPanel() {
           />
         </div>
 
-        {/* Font Family */}
+        {/* Font Family Selection with Google Fonts & Desktop Fonts */}
         <div className="dialog-control-group">
-          <label className="dialog-label">Font</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <label className="dialog-label" style={{ margin: 0 }}>Font Family</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {scanMessage && (
+                <span style={{ fontSize: '10px', color: '#4ade80' }}>{scanMessage}</span>
+              )}
+              <button
+                type="button"
+                className="settings-action-btn"
+                style={{ fontSize: '10px', padding: '2px 7px' }}
+                onClick={handleScanFonts}
+                title="Detect installed desktop fonts from your computer"
+              >
+                {isScanning ? 'Scanning...' : '🖥️ Scan Desktop Fonts'}
+              </button>
+            </div>
+          </div>
+
+          {/* Quick font search filter */}
+          <div style={{ position: 'relative', marginBottom: '6px' }}>
+            <input
+              type="text"
+              className="dialog-input"
+              style={{ fontSize: '11px', paddingLeft: '24px', paddingRight: '8px', height: '28px' }}
+              placeholder="Filter fonts (e.g. Roboto, Montserrat, Arial)..."
+              value={fontSearch}
+              onChange={(e) => setFontSearch(e.target.value)}
+            />
+            <div style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <Icon name="search" size={12} color="#6b7280" />
+            </div>
+          </div>
+
           <select
             className="dialog-select"
             value={textLayer.font}
-            onChange={(e) => setTextLayer(t => ({ ...t, font: e.target.value }))}
+            onChange={(e) => handleFontSelect(e.target.value)}
+            style={{ fontSize: '12px' }}
           >
-            {fonts.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
+            <optgroup label="⭐ Top Google Fonts (Online)">
+              {filteredGoogleFonts.map((f) => (
+                <option key={f.name} value={f.name} style={{ fontFamily: f.name }}>
+                  {f.name} ({f.category})
+                </option>
+              ))}
+            </optgroup>
+
+            <optgroup label="🖥️ Desktop / System Fonts">
+              {filteredDesktopFonts.map((f) => (
+                <option key={f.name} value={f.name} style={{ fontFamily: f.name }}>
+                  {f.name}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
 

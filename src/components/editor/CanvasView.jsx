@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useEditor } from '../../context/useEditor';
 import { getCombinedFilterStyle } from '../../utils/imageProcessor';
+import { Icon } from '../common/Icons';
 
 export default function CanvasView() {
   const {
@@ -33,9 +34,16 @@ export default function CanvasView() {
     brushSize,
     brushOpacity,
     foregroundColor,
+    setForegroundColor,
+    changeCanvasBgColor,
     shapeType,
     autoSaveEnabled,
-    isAutoSaving
+    isAutoSaving,
+    clipCanvasOverflow,
+    undo,
+    redo,
+    canUndo,
+    canRedo
   } = useEditor();
 
   const containerRef = useRef(null);
@@ -135,6 +143,37 @@ export default function CanvasView() {
     if (activeTool === 'zoom') {
       const zoomDelta = e.altKey || e.button === 2 ? -25 : 25;
       setZoomLevel((prev) => Math.max(15, Math.min(400, prev + zoomDelta)));
+      return;
+    }
+
+    // Eyedropper Color Picker Tool
+    if (activeTool === 'eyedropper') {
+      const coords = getCanvasCoords(e);
+      const ctx = paintCanvasRef.current?.getContext('2d');
+      if (ctx) {
+        try {
+          const pixel = ctx.getImageData(Math.floor(coords.x), Math.floor(coords.y), 1, 1).data;
+          if (pixel[3] > 0) {
+            const hex = '#' + ((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1);
+            setForegroundColor(hex);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      setForegroundColor(canvasBgColor === 'transparent' ? '#ffffff' : canvasBgColor);
+      return;
+    }
+
+    // Paint Bucket Tool
+    if (activeTool === 'bucket') {
+      const targetLayer = layers.find(l => l.id === selectedLayerId);
+      if (targetLayer && targetLayer.type === 'shape') {
+        updateLayer(targetLayer.id, { fill: foregroundColor });
+      } else {
+        changeCanvasBgColor(foregroundColor);
+      }
       return;
     }
 
@@ -388,6 +427,41 @@ export default function CanvasView() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
+        {/* Floating Canvas History Widget (Undo / Redo directly on the canvas) */}
+        <div
+          className="canvas-floating-history-bar"
+          title="History (Undo: Ctrl+Z / Redo: Ctrl+Y)"
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className={`canvas-history-btn ${canUndo ? 'active' : 'disabled'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              undo();
+            }}
+            disabled={!canUndo}
+            title="Undo last change (Ctrl+Z)"
+          >
+            <Icon name="undo" size={13} />
+            <span>Undo</span>
+          </button>
+          <div className="canvas-history-divider" />
+          <button
+            className={`canvas-history-btn ${canRedo ? 'active' : 'disabled'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              redo();
+            }}
+            disabled={!canRedo}
+            title="Redo change (Ctrl+Y)"
+          >
+            <Icon name="redo" size={13} />
+            <span>Redo</span>
+          </button>
+        </div>
+
         <div
           className="canvas-artboard-wrapper"
           style={{
@@ -407,7 +481,7 @@ export default function CanvasView() {
                   ? 'repeating-conic-gradient(#808080 0% 25%, #ffffff 0% 50%) 50% / 20px 20px'
                   : 'none',
               position: 'relative',
-              overflow: 'visible'
+              overflow: clipCanvasOverflow ? 'hidden' : 'visible'
             }}
           >
             {/* MULTIPLE LAYERS RENDERING (Bottom to top: layers reversed) */}
@@ -539,6 +613,177 @@ export default function CanvasView() {
                                 h: layer.height,
                                 x: layer.x,
                                 y: layer.y
+                              });
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // 3. Shape layer (Rectangle, Rounded Rect, Circle, Star, Triangle, Line)
+                if (layer.type === 'shape') {
+                  const isShapeSelected = selectedLayerId === layer.id;
+                  const sWidth = layer.width || 400;
+                  const sHeight = layer.height || 260;
+                  const sType = layer.shapeType || 'rectangle';
+
+                  return (
+                    <div
+                      key={layer.id}
+                      style={{
+                        position: 'absolute',
+                        left: `${layer.x ?? 0}px`,
+                        top: `${layer.y ?? 0}px`,
+                        width: `${sWidth}px`,
+                        height: `${sHeight}px`,
+                        opacity: (layer.opacity ?? 100) / 100,
+                        mixBlendMode: layer.blendMode?.toLowerCase() || 'normal',
+                        cursor: activeTool === 'move' || activeTool === 'shapes' ? 'move' : 'default',
+                        zIndex: index + 1
+                      }}
+                      onMouseDown={(e) => {
+                        if (activeTool === 'move' || activeTool === 'shapes') {
+                          e.stopPropagation();
+                          setSelectedLayerId(layer.id);
+                          setIsDraggingLayer(true);
+                          setLayerDragStart({
+                            x: e.clientX,
+                            y: e.clientY,
+                            layerX: layer.x ?? 0,
+                            layerY: layer.y ?? 0
+                          });
+                        }
+                      }}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedLayerId(layer.id);
+                        setActivePanel('shapes');
+                      }}
+                    >
+                      {/* Shape visual geometry */}
+                      {sType === 'circle' ? (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '50%',
+                            backgroundColor: layer.fill,
+                            border: `${layer.strokeWidth || 0}px ${layer.strokeStyle || 'solid'} ${layer.stroke || 'transparent'}`,
+                            boxShadow: layer.shadow ? `0 0 ${layer.shadowBlur || 15}px ${layer.shadowColor || '#ffffff'}` : 'none'
+                          }}
+                        />
+                      ) : sType === 'triangle' ? (
+                        <svg width="100%" height="100%" viewBox={`0 0 ${sWidth} ${sHeight}`}>
+                          <polygon
+                            points={`${sWidth / 2},${layer.strokeWidth || 2} ${sWidth - (layer.strokeWidth || 2)},${sHeight - (layer.strokeWidth || 2)} ${layer.strokeWidth || 2},${sHeight - (layer.strokeWidth || 2)}`}
+                            fill={layer.fill}
+                            stroke={layer.stroke}
+                            strokeWidth={layer.strokeWidth || 0}
+                            strokeDasharray={layer.strokeStyle === 'dashed' ? '8 4' : layer.strokeStyle === 'dotted' ? '3 3' : 'none'}
+                            style={{
+                              filter: layer.shadow ? `drop-shadow(0 0 ${layer.shadowBlur || 15}px ${layer.shadowColor || '#ffffff'})` : 'none'
+                            }}
+                          />
+                        </svg>
+                      ) : sType === 'star' ? (
+                        <svg width="100%" height="100%" viewBox="0 0 24 24">
+                          <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                            fill={layer.fill}
+                            stroke={layer.stroke}
+                            strokeWidth={layer.strokeWidth ? layer.strokeWidth / 10 : 0}
+                            style={{
+                              filter: layer.shadow ? `drop-shadow(0 0 ${layer.shadowBlur || 15}px ${layer.shadowColor || '#ffffff'})` : 'none'
+                            }}
+                          />
+                        </svg>
+                      ) : sType === 'line' ? (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            minHeight: '4px',
+                            backgroundColor: layer.fill,
+                            border: `${layer.strokeWidth || 0}px ${layer.strokeStyle || 'solid'} ${layer.stroke || 'transparent'}`,
+                            borderRadius: `${layer.cornerRadius || 2}px`,
+                            boxShadow: layer.shadow ? `0 0 ${layer.shadowBlur || 15}px ${layer.shadowColor || '#8b5cf6'}` : 'none'
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: `${layer.cornerRadius ?? (sType === 'rounded-rect' ? 24 : 0)}px`,
+                            backgroundColor: layer.fill,
+                            border: `${layer.strokeWidth || 0}px ${layer.strokeStyle || 'solid'} ${layer.stroke || 'transparent'}`,
+                            boxShadow: layer.shadow ? `0 0 ${layer.shadowBlur || 15}px ${layer.shadowColor || '#8b5cf6'}` : 'none'
+                          }}
+                        />
+                      )}
+
+                      {/* Transform Bounding Box for Shapes */}
+                      {showTransformControls && isShapeSelected && (activeTool === 'move' || activeTool === 'shapes') && !isCropMode && (
+                        <div className="transform-bounding-box" style={{ pointerEvents: 'auto' }}>
+                          <div
+                            className="transform-handle tl"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setIsResizingLayer('tl');
+                              setLayerResizeStart({
+                                mouseX: e.clientX,
+                                mouseY: e.clientY,
+                                w: sWidth,
+                                h: sHeight,
+                                x: layer.x ?? 0,
+                                y: layer.y ?? 0
+                              });
+                            }}
+                          />
+                          <div
+                            className="transform-handle tr"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setIsResizingLayer('tr');
+                              setLayerResizeStart({
+                                mouseX: e.clientX,
+                                mouseY: e.clientY,
+                                w: sWidth,
+                                h: sHeight,
+                                x: layer.x ?? 0,
+                                y: layer.y ?? 0
+                              });
+                            }}
+                          />
+                          <div
+                            className="transform-handle bl"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setIsResizingLayer('bl');
+                              setLayerResizeStart({
+                                mouseX: e.clientX,
+                                mouseY: e.clientY,
+                                w: sWidth,
+                                h: sHeight,
+                                x: layer.x ?? 0,
+                                y: layer.y ?? 0
+                              });
+                            }}
+                          />
+                          <div
+                            className="transform-handle br"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setIsResizingLayer('br');
+                              setLayerResizeStart({
+                                mouseX: e.clientX,
+                                mouseY: e.clientY,
+                                w: sWidth,
+                                h: sHeight,
+                                x: layer.x ?? 0,
+                                y: layer.y ?? 0
                               });
                             }}
                           />

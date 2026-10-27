@@ -13,8 +13,13 @@ export default function LayersPanel() {
     deleteLayer,
     addLayer,
     addTextLayer,
+    addShapeLayer,
+    removeSelectedLayerBackground,
+    isRemovingBg,
     moveLayerUp,
     moveLayerDown,
+    reorderLayers,
+    addImageLayer,
     triggerAddImageLayerDialog,
     layerOpacity,
     setLayerOpacity,
@@ -27,6 +32,76 @@ export default function LayersPanel() {
   } = useEditor();
 
   const [activeTab, setActiveTab] = useState('Layers');
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState(null);
+  const [isFileDragging, setIsFileDragging] = useState(false);
+
+  // Drag and drop layer reordering
+  const handleLayerDragStart = (e, index, layer) => {
+    if (layer.type === 'background') {
+      e.preventDefault();
+      return;
+    }
+    setDraggedIndex(index);
+    e.dataTransfer.setData('text/plain', String(index));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleLayerDragOver = (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (dropTargetIndex !== index) {
+      setDropTargetIndex(index);
+    }
+  };
+
+  const handleLayerDrop = (e, targetIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+      reorderLayers(draggedIndex, targetIndex);
+    }
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+  };
+
+  const handleLayerDragEnd = () => {
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+  };
+
+  // Drag and drop image files directly from desktop onto the layers panel
+  const handlePanelFileDragOver = (e) => {
+    if (e.dataTransfer?.types?.includes('Files')) {
+      e.preventDefault();
+      setIsFileDragging(true);
+    }
+  };
+
+  const handlePanelFileDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsFileDragging(false);
+    }
+  };
+
+  const handlePanelFileDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsFileDragging(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach((file) => {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            addImageLayer(event.target.result, file.name);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  };
 
   const blendModes = [
     'Normal', 'Dissolve', 'Darken', 'Multiply', 'Color Burn',
@@ -113,11 +188,11 @@ export default function LayersPanel() {
                 <button
                   type="button"
                   className="dialog-primary-btn"
-                  style={{ fontSize: '10px', padding: '4px 7px', flex: '1 1 auto' }}
+                  style={{ fontSize: '10px', padding: '4px 8px', flex: '1 1 auto', background: '#1c1c1c', border: '1px solid #333333', color: '#ffffff' }}
                   onClick={triggerAddImageLayerDialog}
                   title="Add an image file as a new layer"
                 >
-                  <Icon name="image" size={12} />
+                  <Icon name="image" size={12} color="#ffffff" />
                   <span>+ Image</span>
                 </button>
                 <button
@@ -125,17 +200,52 @@ export default function LayersPanel() {
                   className="dialog-primary-btn"
                   style={{
                     fontSize: '10px',
-                    padding: '4px 7px',
+                    padding: '4px 8px',
                     flex: '1 1 auto',
-                    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.4) 0%, rgba(147, 51, 234, 0.3) 100%)',
-                    border: '1px solid #c084fc',
+                    background: '#1c1c1c',
+                    border: '1px solid #333333',
                     color: '#ffffff'
                   }}
                   onClick={() => addTextLayer()}
                   title="Add a new Text Layer (T)"
                 >
-                  <Icon name="text" size={12} color="#c084fc" />
+                  <Icon name="text" size={12} color="#ffffff" />
                   <span>+ Text</span>
+                </button>
+                <button
+                  type="button"
+                  className="dialog-primary-btn"
+                  style={{
+                    fontSize: '10px',
+                    padding: '4px 8px',
+                    flex: '1 1 auto',
+                    background: '#1c1c1c',
+                    border: '1px solid #333333',
+                    color: '#ffffff'
+                  }}
+                  onClick={() => addShapeLayer()}
+                  title="Add a new Rectangle or Shape Layer (U)"
+                >
+                  <Icon name="shapes" size={12} color="#ffffff" />
+                  <span>+ Shape</span>
+                </button>
+                <button
+                  type="button"
+                  className="dialog-primary-btn"
+                  style={{
+                    fontSize: '10px',
+                    padding: '4px 8px',
+                    flex: '1 1 auto',
+                    background: '#1c1c1c',
+                    border: '1px solid #333333',
+                    color: '#ffffff'
+                  }}
+                  onClick={() => removeSelectedLayerBackground()}
+                  disabled={isRemovingBg}
+                  title="Remove background from selected image layer"
+                >
+                  <Icon name="scissors" size={12} color="#ffffff" />
+                  <span>{isRemovingBg ? '...' : 'No BG'}</span>
                 </button>
                 <button
                   type="button"
@@ -158,26 +268,84 @@ export default function LayersPanel() {
               </div>
             </div>
 
+            {/* Drag & Drop Reorder & File Hint Bar */}
+            <div className="layers-drag-hint-bar">
+              <Icon name="grip" size={12} color="#737373" />
+              <span>Drag layers to reorder &bull; Drop images to add</span>
+            </div>
+
             {/* Layers Stack List */}
-            <div className="layers-stack-scroll">
-              {layers.map((layer) => {
+            <div
+              className={`layers-stack-scroll ${isFileDragging ? 'drag-over-file-zone' : ''}`}
+              style={{ position: 'relative' }}
+              onDragOver={handlePanelFileDragOver}
+              onDragLeave={handlePanelFileDragLeave}
+              onDrop={handlePanelFileDrop}
+            >
+              {/* File Drop Overlay Cue */}
+              {isFileDragging && (
+                <div className="layers-file-dropzone-overlay">
+                  <Icon name="image" size={30} color="#ffffff" />
+                  <span style={{ fontWeight: 600, fontSize: '12px', color: '#ffffff', marginTop: '4px' }}>
+                    Drop Images Here
+                  </span>
+                  <span style={{ fontSize: '10px', color: '#a3a3a3' }}>
+                    Adds as new layer
+                  </span>
+                </div>
+              )}
+
+              {layers.map((layer, index) => {
                 const isSelected = selectedLayerId === layer.id;
                 const isText = layer.type === 'text';
+                const isShape = layer.type === 'shape';
                 const isBg = layer.type === 'background';
                 const isImg = layer.type === 'image';
+                const isDragging = draggedIndex === index;
+                const isDropTarget = dropTargetIndex === index && draggedIndex !== index;
 
                 return (
                   <div
                     key={layer.id}
-                    className={`layer-item-row ${isSelected ? 'selected' : ''} ${isText ? 'text-layer-item' : ''}`}
+                    draggable={!isBg}
+                    onDragStart={(e) => handleLayerDragStart(e, index, layer)}
+                    onDragOver={(e) => handleLayerDragOver(e, index)}
+                    onDrop={(e) => handleLayerDrop(e, index)}
+                    onDragEnd={handleLayerDragEnd}
+                    className={`layer-item-row ${isSelected ? 'selected' : ''} ${isText ? 'text-layer-item' : ''} ${isShape ? 'shape-layer-item' : ''} ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? 'drop-target-active' : ''}`}
                     onClick={() => {
                       setSelectedLayerId(layer.id);
                       if (isText) {
                         setActiveTool('text');
                         setActivePanel('text');
                       }
+                      if (isShape) {
+                        setActiveTool('shapes');
+                        setActivePanel('shapes');
+                      }
                     }}
                   >
+                    {/* Drag Grip Handle */}
+                    {!isBg ? (
+                      <div
+                        className="layer-drag-grip"
+                        title="Drag to reorder layer in stack"
+                        style={{
+                          cursor: 'grab',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0 2px',
+                          color: '#8b849c',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <Icon name="grip" size={13} color="#8b849c" />
+                      </div>
+                    ) : (
+                      <div style={{ width: '13px', margin: '0 2px' }} />
+                    )}
+
                     {/* Visibility eye toggle */}
                     <button
                       type="button"
@@ -207,12 +375,35 @@ export default function LayersPanel() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(99, 102, 241, 0.3) 100%)',
+                            background: '#1c1c1c',
                             borderRadius: '3px',
-                            border: '1px solid rgba(192, 132, 252, 0.5)'
+                            border: '1px solid #333333'
                           }}
                         >
-                          <span style={{ fontWeight: 800, fontSize: '13px', color: '#c084fc', fontFamily: 'serif' }}>T</span>
+                          <span style={{ fontWeight: 800, fontSize: '13px', color: '#ffffff', fontFamily: 'serif' }}>T</span>
+                        </div>
+                      ) : isShape ? (
+                        <div
+                          className="layer-shape-badge"
+                          title={`Shape Layer (${layer.shapeType || 'rectangle'})`}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: layer.fill === 'transparent' ? '#111' : (layer.fill || '#ffffff'),
+                            backgroundImage: layer.fill === 'transparent' ? 'repeating-conic-gradient(#555 0% 25%, #888 0% 50%) 50% / 6px 6px' : 'none',
+                            borderRadius: layer.shapeType === 'circle' ? '50%' : '3px',
+                            border: '1px solid rgba(255,255,255,0.4)',
+                            boxShadow: 'inset 0 0 4px rgba(0,0,0,0.4)'
+                          }}
+                        >
+                          <Icon
+                            name={layer.shapeType === 'circle' ? 'circledot' : layer.shapeType === 'star' ? 'star' : layer.shapeType === 'triangle' ? 'triangle' : 'square'}
+                            size={11}
+                            color="#ffffff"
+                          />
                         </div>
                       ) : isBg ? (
                         <div
@@ -237,7 +428,7 @@ export default function LayersPanel() {
                         />
                       ) : (
                         <div className="layer-type-chip">
-                          <Icon name={layer.icon || 'layers'} size={14} color="#c084fc" />
+                          <Icon name={layer.icon || 'layers'} size={14} color="#ffffff" />
                         </div>
                       )}
                     </div>
@@ -250,6 +441,11 @@ export default function LayersPanel() {
                       {isText && (
                         <span style={{ fontSize: '9px', color: '#a78bfa', lineHeight: 1.1 }}>
                           T &bull; {layer.font || 'Poppins'} {layer.size || 120}px
+                        </span>
+                      )}
+                      {isShape && (
+                        <span style={{ fontSize: '9px', color: '#60a5fa', lineHeight: 1.1 }}>
+                          Shape &bull; {layer.shapeType || 'rectangle'} &bull; {layer.width || 440}×{layer.height || 280}px
                         </span>
                       )}
                     </div>
@@ -320,7 +516,7 @@ export default function LayersPanel() {
                 title="Create Text Layer (T)"
                 onClick={() => addTextLayer()}
               >
-                <Icon name="text" size={14} color="#c084fc" />
+                <Icon name="text" size={14} color="#ffffff" />
               </button>
 
               <button
@@ -330,6 +526,17 @@ export default function LayersPanel() {
                 onClick={() => addLayer('image')}
               >
                 <Icon name="plus" size={14} />
+              </button>
+
+              <button
+                type="button"
+                className="layers-action-btn"
+                title="Remove Background from Layer"
+                onClick={() => removeSelectedLayerBackground()}
+                disabled={isRemovingBg}
+                style={{ color: '#f472b6' }}
+              >
+                <Icon name="scissors" size={14} color="#f472b6" />
               </button>
 
               <button

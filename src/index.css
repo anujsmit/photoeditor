@@ -1,44 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --bg-app: #0e0c16;
-  --bg-panel: #151320;
-  --bg-card: #1d1a2c;
-  --bg-card-hover: #26223a;
-  --bg-input: #191627;
-  --border-subtle: #29243e;
-  --border-focus: #8b5cf6;
+  /* Minimalist Black and White Theme */
+  --bg-app: #000000;
+  --bg-panel: #0a0a0a;
+  --bg-card: #121212;
+  --bg-card-hover: #1c1c1c;
+  --bg-input: #121212;
+  --border-subtle: #262626;
+  --border-focus: #ffffff;
 
-  --accent-purple: #8b5cf6;
-  --accent-purple-dark: #7c3aed;
-  --accent-purple-light: #a855f7;
-  --accent-glow: #c084fc;
-  --accent-glow-subtle: rgba(139, 92, 246, 0.25);
-  --accent-glow-heavy: rgba(192, 132, 252, 0.45);
+  /* Monochrome Accents (Pure White & Grayscale) */
+  --accent-purple: #ffffff;
+  --accent-purple-dark: #e5e5e5;
+  --accent-purple-light: #ffffff;
+  --accent-glow: #ffffff;
+  --accent-glow-subtle: rgba(255, 255, 255, 0.12);
+  --accent-glow-heavy: rgba(255, 255, 255, 0.25);
 
+  /* High-Contrast Crisp Typography */
   --text-main: #ffffff;
-  --text-secondary: #9c97b2;
-  --text-muted: #67627e;
-  --text-disabled: #474358;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  --text-disabled: #404040;
 
   --danger-color: #ef4444;
-  --success-color: #10b981;
+  --success-color: #ffffff;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  /* Modern Flat Minimalist Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   --radius-pill: 9999px;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.4);
+  /* Clean Crisp Flat Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.75);
+  --shadow-glow: none;
+
+  /* Animation & Transitions */
+  --transition-fast: 0.12s ease;
+  --transition-normal: 0.2s ease;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   user-select: none;
   -webkit-font-smoothing: antialiased;
 }
@@ -51,20 +60,20 @@ body {
   overflow: hidden;
 }
 
-/* Custom Scrollbars */
+/* Custom Minimalist Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
-  border-radius: 4px;
+  background: #2a2a2a;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-purple-dark);
+  background: #444444;
 }
 
 input, button, select, textarea {
@@ -79,46 +88,29 @@ button {
   color: inherit;
 }
 
-/* Base custom Range Inputs */
+/* Base Minimalist Custom Range Inputs */
 .bard-range-input {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 4px;
-  background: #2a2542;
-  border-radius: 3px;
+  height: 3px;
+  background: #262626;
+  border-radius: 2px;
   outline: none;
 }
 .bard-range-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: #ffffff;
-  border: 2px solid var(--accent-purple);
-  box-shadow: 0 0 8px var(--accent-purple);
+  border: 1px solid #141414;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   cursor: pointer;
-  transition: transform 0.15s ease;
+  transition: transform 0.1s ease;
 }
 .bard-range-input::-webkit-slider-thumb:hover {
-  transform: scale(1.25);
-  background: var(--accent-glow);
-}
-
-.bard-range-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
+  transform: scale(1.15);
   background: #ffffff;
-  border: 2px solid var(--accent-purple);
-  box-shadow: 0 0 8px var(--accent-purple);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-.bard-range-input::-webkit-slider-thumb:hover {
-  transform: scale(1.25);
-  background: var(--accent-glow);
 }

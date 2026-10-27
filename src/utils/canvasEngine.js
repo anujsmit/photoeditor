@@ -133,40 +133,80 @@ export function applyAutoEnhance(imageData) {
 /**
  * Apply AI Edge-Aware Background Removal Simulation
  */
-export function applyBackgroundRemoval(imageData) {
+export function applyBackgroundRemoval(imageData, threshold = 65) {
   const data = imageData.data;
   const width = imageData.width;
   const height = imageData.height;
+  const total = width * height;
 
-  // Sample corner background colors (top-left, top-right)
-  const bgR = (data[0] + data[(width - 1) * 4]) / 2;
-  const bgG = (data[1] + data[(width - 1) * 4 + 1]) / 2;
-  const bgB = (data[2] + data[(width - 1) * 4 + 2]) / 2;
+  // Sample border pixels to detect dominant background color
+  let sumR = 0, sumG = 0, sumB = 0, count = 0;
+  for (let x = 0; x < width; x += 10) {
+    const top = x * 4;
+    const btm = ((height - 1) * width + x) * 4;
+    sumR += data[top] + data[btm];
+    sumG += data[top + 1] + data[btm + 1];
+    sumB += data[top + 2] + data[btm + 2];
+    count += 2;
+  }
+  for (let y = 0; y < height; y += 10) {
+    const lft = (y * width) * 4;
+    const rgt = (y * width + width - 1) * 4;
+    sumR += data[lft] + data[rgt];
+    sumG += data[lft + 1] + data[rgt + 1];
+    sumB += data[lft + 2] + data[rgt + 2];
+    count += 2;
+  }
 
-  const threshold = 65;
+  const bgR = count > 0 ? Math.round(sumR / count) : 255;
+  const bgG = count > 0 ? Math.round(sumG / count) : 255;
+  const bgB = count > 0 ? Math.round(sumB / count) : 255;
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
+  const colorDiff = (r, g, b) => {
+    const dr = r - bgR;
+    const dg = g - bgG;
+    const db = b - bgB;
+    return Math.sqrt(0.299 * (dr * dr) + 0.587 * (dg * dg) + 0.114 * (db * db));
+  };
 
-      const diff = Math.sqrt(
-        (r - bgR) ** 2 +
-        (g - bgG) ** 2 +
-        (b - bgB) ** 2
-      );
+  // Flood fill from borders
+  const visited = new Uint8Array(total);
+  const queue = [];
 
-      // Distance from center weight (portrait subject usually centered)
-      const distFromCenter = Math.hypot((x - width / 2) / (width / 2), (y - height / 2) / (height / 2));
-
-      if (diff < threshold && distFromCenter > 0.45) {
-        data[idx + 3] = 0; // Transparent
-      } else if (diff < threshold + 25 && distFromCenter > 0.55) {
-        data[idx + 3] = Math.round(((diff - threshold) / 25) * 255); // Smooth edge alpha
-      }
+  const checkAndQueue = (x, y) => {
+    if (x < 0 || x >= width || y < 0 || y >= height) return;
+    const idx = y * width + x;
+    if (visited[idx]) return;
+    visited[idx] = 1;
+    const pIdx = idx * 4;
+    const diff = colorDiff(data[pIdx], data[pIdx + 1], data[pIdx + 2]);
+    if (diff <= threshold) {
+      data[pIdx + 3] = 0; // transparent
+      queue.push(idx);
+    } else if (diff <= threshold + 25) {
+      data[pIdx + 3] = Math.round(((diff - threshold) / 25) * 255);
     }
+  };
+
+  for (let x = 0; x < width; x++) {
+    checkAndQueue(x, 0);
+    checkAndQueue(x, height - 1);
+  }
+  for (let y = 0; y < height; y++) {
+    checkAndQueue(0, y);
+    checkAndQueue(width - 1, y);
+  }
+
+  let head = 0;
+  while (head < queue.length) {
+    const curr = queue[head++];
+    const cx = curr % width;
+    const cy = Math.floor(curr / width);
+
+    if (cx > 0) checkAndQueue(cx - 1, cy);
+    if (cx < width - 1) checkAndQueue(cx + 1, cy);
+    if (cy > 0) checkAndQueue(cx, cy - 1);
+    if (cy < height - 1) checkAndQueue(cx, cy + 1);
   }
 
   return imageData;

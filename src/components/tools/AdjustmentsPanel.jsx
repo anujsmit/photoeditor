@@ -8,7 +8,10 @@ export default function AdjustmentsPanel() {
     updateAdjustment,
     resetAllAdjustments,
     setActivePanel,
-    setCurrentView
+    setCurrentView,
+    currentImage,
+    setAiPhoto,
+    triggerAIToolUpload
   } = useEditor();
 
   const [activeTab, setActiveTab] = useState('Manual');
@@ -41,7 +44,14 @@ export default function AdjustmentsPanel() {
                 onClick={() => {
                   setActiveTab(t);
                   if (t === 'Presets') setActivePanel('filters');
-                  if (t === 'AI Enhance') setCurrentView('ai-tools');
+                  if (t === 'AI Enhance') {
+                    if (currentImage) {
+                      setAiPhoto(currentImage);
+                      setCurrentView('ai-enhance');
+                    } else {
+                      triggerAIToolUpload('ai-enhance');
+                    }
+                  }
                 }}
               >
                 {t}

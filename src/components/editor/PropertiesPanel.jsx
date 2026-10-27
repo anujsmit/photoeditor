@@ -11,14 +11,20 @@ export default function PropertiesPanel() {
     selectedLayerId,
     updateLayer,
     canvasBgColor,
-    changeCanvasBgColor
+    changeCanvasBgColor,
+    removeSelectedLayerBackground,
+    isRemovingBg
   } = useEditor();
 
   const [activeTab, setActiveTab] = useState('Properties');
   const [rotation, setRotation] = useState(0);
+  const [bgTolerance, setBgTolerance] = useState(42);
+  const [bgMode, setBgMode] = useState('border');
 
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
   const isImageLayer = selectedLayer && selectedLayer.type === 'image';
+  const isShapeLayer = selectedLayer && selectedLayer.type === 'shape';
+  const isTransformable = selectedLayer && (selectedLayer.type === 'image' || selectedLayer.type === 'shape');
 
   const bgSwatches = [
     { label: 'White', color: '#ffffff' },
@@ -52,7 +58,7 @@ export default function PropertiesPanel() {
         {/* Transform Sub-section */}
         <div className="panel-section-group">
           <div className="section-title-sm">
-            {isImageLayer ? `Transform (${selectedLayer.name})` : 'Canvas Transform'}
+            {isTransformable ? `Transform (${selectedLayer.name})` : 'Canvas Transform'}
           </div>
 
           <div className="properties-grid-2col">
@@ -60,10 +66,10 @@ export default function PropertiesPanel() {
               <span className="prop-label">W</span>
               <input
                 type="number"
-                value={isImageLayer ? (selectedLayer.width || docDimensions.width) : docDimensions.width}
+                value={isTransformable ? (selectedLayer.width || docDimensions.width) : docDimensions.width}
                 onChange={(e) => {
                   const val = Number(e.target.value);
-                  if (isImageLayer) {
+                  if (isTransformable) {
                     updateLayer(selectedLayerId, { width: val });
                   } else {
                     setDocDimensions((d) => ({ ...d, width: val }));
@@ -77,10 +83,10 @@ export default function PropertiesPanel() {
               <span className="prop-label">H</span>
               <input
                 type="number"
-                value={isImageLayer ? (selectedLayer.height || docDimensions.height) : docDimensions.height}
+                value={isTransformable ? (selectedLayer.height || docDimensions.height) : docDimensions.height}
                 onChange={(e) => {
                   const val = Number(e.target.value);
-                  if (isImageLayer) {
+                  if (isTransformable) {
                     updateLayer(selectedLayerId, { height: val });
                   } else {
                     setDocDimensions((d) => ({ ...d, height: val }));
@@ -94,10 +100,10 @@ export default function PropertiesPanel() {
               <span className="prop-label">X</span>
               <input
                 type="number"
-                value={isImageLayer ? (selectedLayer.x || 0) : 0}
+                value={isTransformable ? (selectedLayer.x || 0) : 0}
                 onChange={(e) => {
                   const val = Number(e.target.value);
-                  if (isImageLayer) updateLayer(selectedLayerId, { x: val });
+                  if (isTransformable) updateLayer(selectedLayerId, { x: val });
                 }}
               />
               <span className="prop-unit">px</span>
@@ -107,10 +113,10 @@ export default function PropertiesPanel() {
               <span className="prop-label">Y</span>
               <input
                 type="number"
-                value={isImageLayer ? (selectedLayer.y || 0) : 0}
+                value={isTransformable ? (selectedLayer.y || 0) : 0}
                 onChange={(e) => {
                   const val = Number(e.target.value);
-                  if (isImageLayer) updateLayer(selectedLayerId, { y: val });
+                  if (isTransformable) updateLayer(selectedLayerId, { y: val });
                 }}
               />
               <span className="prop-unit">px</span>
@@ -128,6 +134,150 @@ export default function PropertiesPanel() {
           </div>
         </div>
 
+        {/* AI Background Removal Section for Images */}
+        {isImageLayer && (
+          <div className="panel-section-group" style={{ background: 'rgba(236, 72, 153, 0.06)', border: '1px solid rgba(244, 114, 182, 0.25)', borderRadius: '8px', padding: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Icon name="scissors" size={15} color="#f472b6" />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#ffffff' }}>Background Removal</span>
+              </div>
+              <span style={{ fontSize: '9px', padding: '1px 6px', background: 'rgba(244, 114, 182, 0.2)', color: '#f472b6', borderRadius: '4px', fontWeight: 600 }}>
+                AI ISOLATION
+              </span>
+            </div>
+
+            <p style={{ margin: '0 0 10px 0', fontSize: '10px', color: '#9ca3af', lineHeight: 1.3 }}>
+              Instantly isolate the subject and remove the background from "{selectedLayer.name}".
+            </p>
+
+            {/* Primary Action Button */}
+            <button
+              type="button"
+              className="dialog-primary-btn"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                background: '#1c1c1c',
+                border: '1px solid #333333',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onClick={() => removeSelectedLayerBackground({ tolerance: bgTolerance, mode: bgMode })}
+              disabled={isRemovingBg}
+            >
+              <Icon name="scissors" size={14} color="#ffffff" />
+              <span>{isRemovingBg ? 'Processing Alpha Matting...' : 'Remove Background'}</span>
+            </button>
+
+            {/* Tolerance Slider */}
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="prop-label" style={{ fontSize: '10px' }}>Color Tolerance:</span>
+                <span style={{ fontSize: '10px', color: '#f472b6', fontWeight: 600 }}>{bgTolerance}%</span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="90"
+                value={bgTolerance}
+                onChange={(e) => setBgTolerance(Number(e.target.value))}
+                className="bard-range-input"
+                style={{ width: '100%', marginTop: '4px' }}
+              />
+            </div>
+
+            {/* Mode selection */}
+            <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+              <button
+                type="button"
+                className={`panel-tab-btn ${bgMode === 'border' ? 'active' : ''}`}
+                style={{ flex: 1, padding: '4px 6px', fontSize: '10px', borderRadius: '4px' }}
+                onClick={() => setBgMode('border')}
+                title="Only removes background connected to the borders, preserving inside white details"
+              >
+                Border Flood Fill
+              </button>
+              <button
+                type="button"
+                className={`panel-tab-btn ${bgMode === 'global' ? 'active' : ''}`}
+                style={{ flex: 1, padding: '4px 6px', fontSize: '10px', borderRadius: '4px' }}
+                onClick={() => setBgMode('global')}
+                title="Removes matching background color everywhere"
+              >
+                Global Match
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Shape Specific Layout & Style */}
+        {isShapeLayer && (
+          <div className="panel-section-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div className="section-title-sm" style={{ margin: 0 }}>Shape Layout &amp; Style</div>
+              <button
+                type="button"
+                className="dialog-primary-btn"
+                style={{ fontSize: '10px', padding: '2px 8px' }}
+                onClick={() => setActivePanel('shapes')}
+              >
+                Layout Panel
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span className="prop-label" style={{ minWidth: '28px' }}>Fill:</span>
+              <input
+                type="color"
+                value={selectedLayer.fill === 'transparent' ? '#ffffff' : (selectedLayer.fill || '#ffffff')}
+                onChange={(e) => updateLayer(selectedLayer.id, { fill: e.target.value })}
+                style={{ width: '22px', height: '22px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
+              />
+              <span className="prop-label" style={{ minWidth: '40px', marginLeft: '6px' }}>Stroke:</span>
+              <input
+                type="color"
+                value={selectedLayer.stroke === 'transparent' ? '#ffffff' : (selectedLayer.stroke || '#ffffff')}
+                onChange={(e) => updateLayer(selectedLayer.id, { stroke: e.target.value })}
+                style={{ width: '22px', height: '22px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
+              />
+              <input
+                type="number"
+                min="0"
+                max="40"
+                value={selectedLayer.strokeWidth ?? 2}
+                onChange={(e) => updateLayer(selectedLayer.id, { strokeWidth: Number(e.target.value) })}
+                className="dialog-input"
+                style={{ width: '45px', textAlign: 'center' }}
+              />
+              <span style={{ fontSize: '11px', color: '#8e89a5' }}>px</span>
+            </div>
+
+            {['rectangle', 'rounded-rect'].includes(selectedLayer.shapeType) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                <span className="prop-label" style={{ minWidth: '45px' }}>Radius:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={selectedLayer.cornerRadius ?? 16}
+                  onChange={(e) => updateLayer(selectedLayer.id, { cornerRadius: Number(e.target.value) })}
+                  className="bard-range-input"
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: '11px', color: '#ffffff', minWidth: '35px', textAlign: 'right' }}>
+                  {selectedLayer.cornerRadius ?? 16}px
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Canvas Background Color Section */}
         <div className="panel-section-group">
           <div className="section-title-sm">Canvas Background Theme</div>
@@ -140,7 +290,7 @@ export default function PropertiesPanel() {
                 style={{
                   backgroundColor: b.color === 'transparent' ? '#ffffff' : b.color,
                   backgroundImage: b.color === 'transparent' ? 'repeating-conic-gradient(#808080 0% 25%, #fff 0% 50%) 50% / 6px 6px' : 'none',
-                  border: canvasBgColor === b.color ? '2px solid #a855f7' : '1px solid var(--border-subtle)',
+                  border: canvasBgColor === b.color ? '2px solid #ffffff' : '1px solid var(--border-subtle)',
                   borderRadius: '4px',
                   height: '24px'
                 }}

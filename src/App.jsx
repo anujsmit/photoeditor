@@ -5,9 +5,12 @@ import SplashScreen from './components/splash/SplashScreen';
 import HomeScreen from './components/home/HomeScreen';
 import EditorWorkspace from './components/editor/EditorWorkspace';
 import TemplatesPage from './components/templates/TemplatesPage';
-import AIToolsPage from './components/ai/AIToolsPage';
+import AIEnhancePage from './components/ai/AIEnhancePage';
+import RemoveBgPage from './components/ai/RemoveBgPage';
 import SettingsPage from './components/settings/SettingsPage';
 import ExportDialog from './components/export/ExportDialog';
+import ShortcutsModal from './components/editor/ShortcutsModal';
+import { matchesShortcut } from './utils/shortcuts';
 import './App.css';
 
 function MainAppContent() {
@@ -23,7 +26,12 @@ function MainAppContent() {
     addImageLayer,
     setCurrentImage,
     setDocumentTitle,
-    pushHistorySnapshot
+    pushHistorySnapshot,
+    shortcuts,
+    deleteSelectedOrTextLayer,
+    saveProjectChanges,
+    setClipCanvasOverflow,
+    setShortcutsModalOpen
   } = useEditor();
 
   // Keyboard shortcut listener & Clipboard Paste
@@ -34,77 +42,142 @@ function MainAppContent() {
         return;
       }
 
-      // Export
-      if (e.ctrlKey && e.key.toLowerCase() === 'e') {
-        e.preventDefault();
-        setExportModalOpen(true);
-        return;
+      // Check user-customizable shortcuts
+      if (shortcuts) {
+        // Delete Text / Active Layer (Default: Ctrl+T)
+        if (matchesShortcut(e, shortcuts.deleteText)) {
+          e.preventDefault();
+          deleteSelectedOrTextLayer();
+          return;
+        }
+
+        // Delete Layer (Default: Delete / Backspace)
+        if (matchesShortcut(e, shortcuts.deleteLayer)) {
+          e.preventDefault();
+          deleteSelectedOrTextLayer();
+          return;
+        }
+
+        // Save Project (Default: Ctrl+S)
+        if (matchesShortcut(e, shortcuts.saveProject)) {
+          e.preventDefault();
+          saveProjectChanges();
+          return;
+        }
+
+        // Export (Default: Ctrl+E)
+        if (matchesShortcut(e, shortcuts.exportImage)) {
+          e.preventDefault();
+          setExportModalOpen(true);
+          return;
+        }
+
+        // Undo (Default: Ctrl+Z)
+        if (matchesShortcut(e, shortcuts.undo)) {
+          if (currentView === 'editor') {
+            e.preventDefault();
+            undo();
+            return;
+          }
+        }
+
+        // Redo (Default: Ctrl+Y)
+        if (matchesShortcut(e, shortcuts.redo)) {
+          if (currentView === 'editor') {
+            e.preventDefault();
+            redo();
+            return;
+          }
+        }
+
+        // Toggle Canvas Clipping (Default: Ctrl+\)
+        if (matchesShortcut(e, shortcuts.toggleClip)) {
+          e.preventDefault();
+          setClipCanvasOverflow(p => !p);
+          return;
+        }
       }
 
-      // Undo / Redo
-      if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+      // Quick Help / Shortcuts Modal (? or Ctrl+/)
+      if (e.key === '?' || (e.ctrlKey && e.key === '/')) {
         e.preventDefault();
-        undo();
-        return;
-      }
-      if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
-        e.preventDefault();
-        redo();
+        setShortcutsModalOpen(true);
         return;
       }
 
       if (currentView === 'editor') {
-        switch (e.key.toLowerCase()) {
-          case 'v':
-            setActiveTool('move');
-            break;
-          case 'c':
-            setActiveTool('crop');
-            setActivePanel('crop');
-            break;
-          case 't':
-            setActiveTool('text');
-            setActivePanel('text');
-            break;
-          case 'b':
-            setActiveTool('brush');
-            break;
-          case 'e':
-            setActiveTool('eraser');
-            break;
-          case 'u':
-            setActiveTool('shapes');
-            break;
-          case 'h':
-            setActiveTool('hand');
-            break;
-          case 'z':
-            setActiveTool('zoom');
-            break;
-          case '=':
-          case '+':
-            if (e.ctrlKey) {
-              e.preventDefault();
-              setZoomLevel(z => Math.min(200, z + 25));
-            }
-            break;
-          case '-':
-            if (e.ctrlKey) {
-              e.preventDefault();
-              setZoomLevel(z => Math.max(25, z - 25));
-            }
-            break;
-          case '0':
-            if (e.ctrlKey) {
-              e.preventDefault();
-              setZoomLevel(50);
-            }
-            break;
-          case 'escape':
-            setActivePanel(null);
-            break;
-          default:
-            break;
+        // Tools shortcuts (matches custom or fallback)
+        if (shortcuts?.moveTool && matchesShortcut(e, shortcuts.moveTool)) {
+          setActiveTool('move');
+          return;
+        }
+        if (shortcuts?.cropTool && matchesShortcut(e, shortcuts.cropTool)) {
+          setActiveTool('crop');
+          setActivePanel('crop');
+          return;
+        }
+        if (shortcuts?.textTool && matchesShortcut(e, shortcuts.textTool)) {
+          setActiveTool('text');
+          setActivePanel('text');
+          return;
+        }
+        if (shortcuts?.brushTool && matchesShortcut(e, shortcuts.brushTool)) {
+          setActiveTool('brush');
+          return;
+        }
+        if (shortcuts?.eraserTool && matchesShortcut(e, shortcuts.eraserTool)) {
+          setActiveTool('eraser');
+          return;
+        }
+        if (shortcuts?.shapesTool && matchesShortcut(e, shortcuts.shapesTool)) {
+          setActiveTool('shapes');
+          setActivePanel('shapes');
+          return;
+        }
+        if (shortcuts?.eyedropperTool && matchesShortcut(e, shortcuts.eyedropperTool)) {
+          setActiveTool('eyedropper');
+          return;
+        }
+        if (shortcuts?.bucketTool && matchesShortcut(e, shortcuts.bucketTool)) {
+          setActiveTool('bucket');
+          return;
+        }
+        if (shortcuts?.lassoTool && matchesShortcut(e, shortcuts.lassoTool)) {
+          setActiveTool('lasso');
+          return;
+        }
+        if (shortcuts?.stampTool && matchesShortcut(e, shortcuts.stampTool)) {
+          setActiveTool('stamp');
+          return;
+        }
+        if (shortcuts?.handTool && matchesShortcut(e, shortcuts.handTool)) {
+          setActiveTool('hand');
+          return;
+        }
+        if (shortcuts?.zoomTool && matchesShortcut(e, shortcuts.zoomTool)) {
+          setActiveTool('zoom');
+          return;
+        }
+
+        // Zoom keys
+        if (e.ctrlKey && (e.key === '=' || e.key === '+')) {
+          e.preventDefault();
+          setZoomLevel((z) => Math.min(400, z + 25));
+          return;
+        }
+        if (e.ctrlKey && e.key === '-') {
+          e.preventDefault();
+          setZoomLevel((z) => Math.max(10, z - 25));
+          return;
+        }
+        if (e.ctrlKey && e.key === '0') {
+          e.preventDefault();
+          setZoomLevel(70);
+          return;
+        }
+        if (e.key.toLowerCase() === 'escape') {
+          setActivePanel(null);
+          return;
         }
       }
     };
@@ -154,7 +227,12 @@ function MainAppContent() {
     addImageLayer,
     setCurrentImage,
     setDocumentTitle,
-    pushHistorySnapshot
+    pushHistorySnapshot,
+    shortcuts,
+    deleteSelectedOrTextLayer,
+    saveProjectChanges,
+    setClipCanvasOverflow,
+    setShortcutsModalOpen
   ]);
 
   return (
@@ -163,11 +241,14 @@ function MainAppContent() {
       {currentView === 'home' && <HomeScreen />}
       {currentView === 'editor' && <EditorWorkspace />}
       {currentView === 'templates' && <TemplatesPage />}
-      {currentView === 'ai-tools' && <AIToolsPage />}
+      {currentView === 'ai-enhance' && <AIEnhancePage />}
+      {currentView === 'remove-bg' && <RemoveBgPage />}
+      {currentView === 'ai-tools' && <AIEnhancePage />}
       {currentView === 'settings' && <SettingsPage />}
 
-      {/* Global Export Dialog Overlay */}
+      {/* Global Modals */}
       <ExportDialog />
+      <ShortcutsModal />
     </div>
   );
 }

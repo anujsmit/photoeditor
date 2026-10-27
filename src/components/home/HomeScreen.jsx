@@ -9,6 +9,8 @@ import { POPULAR_TOOLS } from '../../utils/projectPresets';
 export default function HomeScreen() {
   const {
     triggerOpenFileDialog,
+    handleOpenLocalImage,
+    triggerAIToolUpload,
     setCurrentView,
     setActiveTool,
     setActivePanel,
@@ -28,7 +30,7 @@ export default function HomeScreen() {
 
   const handleToolClick = (tool) => {
     if (tool.action === 'ai-tools') {
-      setCurrentView('ai-tools');
+      triggerAIToolUpload('ai-enhance');
     } else {
       setActiveTool(tool.id);
       if (tool.id === 'crop') setActivePanel('crop');
@@ -40,7 +42,21 @@ export default function HomeScreen() {
   };
 
   return (
-    <div className="home-layout">
+    <div
+      className="home-layout"
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+          handleOpenLocalImage({ target: { files } });
+        }
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
       {/* Top Application Header */}
       <header className="home-top-header">
         <div className="top-brand">
@@ -105,7 +121,7 @@ export default function HomeScreen() {
                 onClick={triggerOpenFileDialog}
               >
                 <div className="action-icon-circle">
-                  <Icon name="image" size={22} color="#c084fc" />
+                  <Icon name="image" size={22} color="#ffffff" />
                 </div>
                 <div className="action-text-group">
                   <h3 className="action-title">Open Image</h3>
@@ -115,27 +131,29 @@ export default function HomeScreen() {
 
               <div
                 className="action-card"
-                onClick={() => setCurrentView('ai-tools')}
+                onClick={() => triggerAIToolUpload('ai-enhance')}
+                title="Select photo to enhance with AI"
               >
                 <div className="action-icon-circle">
-                  <Icon name="sparkles" size={22} color="#c084fc" />
+                  <Icon name="sparkles" size={22} color="#ffffff" />
                 </div>
                 <div className="action-text-group">
                   <h3 className="action-title">AI Enhance</h3>
-                  <p className="action-sub">Improve with AI</p>
+                  <p className="action-sub">Select image to enhance</p>
                 </div>
               </div>
 
               <div
                 className="action-card"
-                onClick={() => setCurrentView('ai-tools')}
+                onClick={() => triggerAIToolUpload('remove-bg')}
+                title="Select photo to isolate subject and remove background"
               >
                 <div className="action-icon-circle">
-                  <Icon name="scissors" size={22} color="#c084fc" />
+                  <Icon name="scissors" size={22} color="#ffffff" />
                 </div>
                 <div className="action-text-group">
                   <h3 className="action-title">Remove Background</h3>
-                  <p className="action-sub">One click removal</p>
+                  <p className="action-sub">Select image to isolate</p>
                 </div>
               </div>
             </section>
@@ -186,7 +204,7 @@ export default function HomeScreen() {
               {filteredRecents.length === 0 ? (
                 <div className="recent-files-empty-box">
                   <div className="empty-icon-circle">
-                    <Icon name="image" size={32} color="#8b5cf6" />
+                    <Icon name="image" size={32} color="#ffffff" />
                   </div>
                   <h4 className="empty-title">No recent projects yet</h4>
                   <p className="empty-desc">
@@ -232,7 +250,7 @@ export default function HomeScreen() {
                             />
                           ) : (
                             <div className="recent-thumb-placeholder">
-                              <Icon name="image" size={24} color="#8b5cf6" />
+                              <Icon name="image" size={24} color="#ffffff" />
                             </div>
                           )}
                           <div className="recent-thumb-overlay">

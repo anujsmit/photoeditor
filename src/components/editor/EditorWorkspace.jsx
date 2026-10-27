@@ -11,6 +11,7 @@ import CropToolModal from '../tools/CropToolModal';
 import AdjustmentsPanel from '../tools/AdjustmentsPanel';
 import FiltersPanel from '../tools/FiltersPanel';
 import TextToolPanel from '../tools/TextToolPanel';
+import ShapeToolPanel from '../tools/ShapeToolPanel';
 
 import { useEditor } from '../../context/useEditor';
 
@@ -67,6 +68,12 @@ export default function EditorWorkspace() {
         {activePanel === 'text' && (
           <div className="tool-floating-container center-aligned">
             <TextToolPanel />
+          </div>
+        )}
+
+        {activePanel === 'shapes' && (
+          <div className="tool-floating-container center-aligned">
+            <ShapeToolPanel />
           </div>
         )}
       </div>

@@ -11,6 +11,7 @@ export default function EditorToolbar() {
     selectedLayerId,
     setSelectedLayerId,
     addTextLayer,
+    addShapeLayer,
     foregroundColor,
     setForegroundColor,
     backgroundColor,
@@ -21,12 +22,17 @@ export default function EditorToolbar() {
   const tools = [
     { id: 'move', name: 'Move Tool (V)', icon: 'move' },
     { id: 'select', name: 'Marquee Tool (M)', icon: 'marquee' },
+    { id: 'lasso', name: 'Lasso Selection Tool (L)', icon: 'lasso' },
     { id: 'crop', name: 'Crop Tool (C)', icon: 'crop', opensPanel: 'crop' },
+    { id: 'eyedropper', name: 'Eyedropper Color Picker (I)', icon: 'eyedropper' },
     { id: 'brush', name: 'Brush Tool (B)', icon: 'brush' },
     { id: 'eraser', name: 'Eraser Tool (E)', icon: 'eraser' },
-    { id: 'gradient', name: 'Gradient Tool (G)', icon: 'gradient' },
+    { id: 'bucket', name: 'Paint Bucket Tool (G)', icon: 'bucket' },
+    { id: 'stamp', name: 'Clone Stamp Tool (S)', icon: 'stamp' },
+    { id: 'blur', name: 'Blur & Sharpen Tool (R)', icon: 'blur' },
+    { id: 'dodge', name: 'Dodge & Burn Tool (O)', icon: 'dodge' },
     { id: 'text', name: 'Text Tool (T)', icon: 'text', opensPanel: 'text' },
-    { id: 'shapes', name: 'Rectangle Tool (U)', icon: 'shapes' },
+    { id: 'shapes', name: 'Rectangle & Shapes Tool (U)', icon: 'shapes', opensPanel: 'shapes' },
     { id: 'wand', name: 'AI Selection Tool (W)', icon: 'wand' },
     { id: 'hand', name: 'Hand Tool (H)', icon: 'hand' },
     { id: 'zoom', name: 'Zoom Tool (Z)', icon: 'zoom' },
@@ -42,6 +48,17 @@ export default function EditorToolbar() {
         const textL = layers.find(l => l.id === selectedLayerId && l.type === 'text') || layers.find(l => l.type === 'text');
         if (textL) setSelectedLayerId(textL.id);
         setActivePanel('text');
+      }
+      return;
+    }
+    if (tool.id === 'shapes') {
+      const hasShape = layers.some(l => l.type === 'shape');
+      if (!hasShape) {
+        addShapeLayer();
+      } else {
+        const shapeL = layers.find(l => l.id === selectedLayerId && l.type === 'shape') || layers.find(l => l.type === 'shape');
+        if (shapeL) setSelectedLayerId(shapeL.id);
+        setActivePanel('shapes');
       }
       return;
     }
