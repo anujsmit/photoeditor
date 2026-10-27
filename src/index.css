@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg-app: #0e0c16;
+  --bg-panel: #151320;
+  --bg-card: #1d1a2c;
+  --bg-card-hover: #26223a;
+  --bg-input: #191627;
+  --border-subtle: #29243e;
+  --border-focus: #8b5cf6;
+
+  --accent-purple: #8b5cf6;
+  --accent-purple-dark: #7c3aed;
+  --accent-purple-light: #a855f7;
+  --accent-glow: #c084fc;
+  --accent-glow-subtle: rgba(139, 92, 246, 0.25);
+  --accent-glow-heavy: rgba(192, 132, 252, 0.45);
+
+  --text-main: #ffffff;
+  --text-secondary: #9c97b2;
+  --text-muted: #67627e;
+  --text-disabled: #474358;
+
+  --danger-color: #ef4444;
+  --success-color: #10b981;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-purple-dark);
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+  outline: none;
+  border: none;
+}
+
+button {
+  cursor: pointer;
+  background: transparent;
+  color: inherit;
+}
+
+/* Base custom Range Inputs */
+.bard-range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #2a2542;
+  border-radius: 3px;
+  outline: none;
+}
+.bard-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--accent-purple);
+  box-shadow: 0 0 8px var(--accent-purple);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.bard-range-input::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  background: var(--accent-glow);
+}
+
+.bard-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--accent-purple);
+  box-shadow: 0 0 8px var(--accent-purple);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.bard-range-input::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  background: var(--accent-glow);
+}
